@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup a NodeJS Proxy Service</title>
+    <link href='//www.kcak11.com/favicon.png' rel='icon' type='image/x-icon' />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-primary: #58a6ff;
+            --accent-secondary: #1f6feb;
+            --border-color: #30363d;
+            --code-bg: #161b22;
+            --code-text: #e6edf3;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            color: var(--text-primary);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+            background: linear-gradient(90deg, var(--accent-primary), #a371f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3rem;
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--accent-secondary);
+            text-decoration: underline;
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background-color: rgba(110, 118, 129, 0.4);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            color: var(--code-text);
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .code-container {
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+
+        .code-container:hover .copy-button {
+            opacity: 1;
+        }
+
+        .copy-button:hover {
+            background-color: var(--accent-secondary);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .copy-button:active {
+            transform: scale(0.95);
+        }
+
+        .copy-button.copied {
+            background-color: #238636;
+            color: var(--text-primary);
+            border-color: #2ea043;
+        }
+
+        .copy-button svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: var(--code-text);
+            font-size: 0.9rem;
+            border-radius: 0;
+        }
+
+        hr {
+            height: 1px;
+            background-color: var(--border-color);
+            border: none;
+            margin: 2rem 0;
+        }
+
+        b,
+        strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Syntax Highlighting Simulation for JS */
+        .keyword {
+            color: #ff7b72;
+        }
+
+        .string {
+            color: #a5d6ff;
+        }
+
+        .function {
+            color: #d2a8ff;
+        }
+
+        .number {
+            color: #79c0ff;
+        }
+
+        .comment {
+            color: #8b949e;
+            font-style: italic;
+        }
+
+        .operator {
+            color: #79c0ff;
+        }
+
+        .variable {
+            color: #e6edf3;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 5px;
+            border: 2px solid var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #30363d;
+        }
+
+        /* Fade in animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        body {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script>
+        function copyCode(button) {
+            const codeContainer = button.closest('.code-container');
+            const codeElement = codeContainer.querySelector('code');
+
+            // Get text content, stripping HTML tags
+            const code = codeElement.innerText || codeElement.textContent;
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(code).then(() => {
+                // Update button icon to checkmark
+                button.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>';
+                button.classList.add('copied');
+
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    button.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"></path></svg>';
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    </script>
+
+    <h1>Setup a NodeJS Proxy Service</h1>
+
+    <h2>Execution Steps</h2>
+
+    <p>Run the below command:</p>
+
+    <div class="code-container">
+        <button class="copy-button" onclick="copyCode(this)" aria-label="Copy code">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z">
+                </path>
+                <path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z">
+                </path>
+            </svg>
+        </button>
+        <pre><code>kubectl run nodepod --image=node:alpine -it -n &lt;namespace&gt;</code></pre>
+    </div>
+
+    <p>This will create a new POD <code>nodepod</code> in the namespace specified by <code>&lt;namespace&gt;</code></p>
+
+    <p>Next in the shell of nodepod, launch the NodeJS REPL</p>
+
+    <div class="code-container">
+        <button class="copy-button" onclick="copyCode(this)" aria-label="Copy code">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z">
+                </path>
+                <path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z">
+                </path>
+            </svg>
+        </button>
+        <pre><code>$&gt; node</code></pre>
+    </div>
+
+    <p>In the REPL, type <code>.editor</code> and press <code>Enter</code> to get into the Editor Mode.<br>
+        Paste the code snipped and then press <code>Ctrl+D</code> to execute the code.</p>
+
+    <p>This will start the NodeJS Proxy Service at the specified port (default 8080 in below code snippet)</p>
+
+    <p>Once the NodeJS Proxy Service is started, create a <b>port-forward</b> and then you can connect to the service
+        from your local machine.</p>
+
+    <hr />
+
+    <h2>NodeJS Proxy Service (Code Snippet)</h2>
+
+    <h4>Update the <code>targetHost</code> &amp; <code>targetPort</code> values to match your target service's host and
+        port values.</h4>
+
+    <br />
+
+    <div class="code-container">
+        <button class="copy-button" onclick="copyCode(this)" aria-label="Copy code">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z">
+                </path>
+                <path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z">
+                </path>
+            </svg>
+        </button>
+        <pre><code><span class="keyword">const</span> <span class="variable">net</span> <span class="operator">=</span> <span class="function">require</span>(<span class="string">'net'</span>);
+
+<span class="keyword">const</span> <span class="variable">proxyPort</span> <span class="operator">=</span> <span class="number">8080</span>;
+<span class="keyword">const</span> <span class="variable">targetHost</span> <span class="operator">=</span> <span class="string">'10.26.0.5'</span>;
+<span class="keyword">const</span> <span class="variable">targetPort</span> <span class="operator">=</span> <span class="number">1521</span>;
+
+<span class="comment">// Create the proxy server</span>
+<span class="keyword">const</span> <span class="variable">proxyServer</span> <span class="operator">=</span> <span class="variable">net</span>.<span class="function">createServer</span>((<span class="variable">clientSocket</span>) <span class="operator">=&gt;</span> {
+  <span class="variable">console</span>.<span class="function">log</span>(<span class="string">`Client connected from: ${clientSocket.remoteAddress}:${clientSocket.remotePort}`</span>);
+
+  <span class="comment">// Connect to the target server</span>
+  <span class="keyword">const</span> <span class="variable">targetSocket</span> <span class="operator">=</span> <span class="variable">net</span>.<span class="function">connect</span>(<span class="variable">targetPort</span>, <span class="variable">targetHost</span>, () <span class="operator">=&gt;</span> {
+    <span class="variable">console</span>.<span class="function">log</span>(<span class="string">`Connected to target: ${targetHost}:${targetPort}`</span>);
+  });
+
+  <span class="comment">// Pipe data from the client to the target</span>
+  <span class="variable">clientSocket</span>.<span class="function">pipe</span>(<span class="variable">targetSocket</span>);
+
+  <span class="comment">// Pipe data from the target to the client</span>
+  <span class="variable">targetSocket</span>.<span class="function">pipe</span>(<span class="variable">clientSocket</span>);
+
+  <span class="comment">// Handle errors and closing connections</span>
+  <span class="variable">clientSocket</span>.<span class="function">on</span>(<span class="string">'error'</span>, (<span class="variable">err</span>) <span class="operator">=&gt;</span> {
+    <span class="variable">console</span>.<span class="function">error</span>(<span class="string">'Client socket error:'</span>, <span class="variable">err</span>);
+    <span class="variable">targetSocket</span>.<span class="function">end</span>();
+  });
+
+  <span class="variable">targetSocket</span>.<span class="function">on</span>(<span class="string">'error'</span>, (<span class="variable">err</span>) <span class="operator">=&gt;</span> {
+    <span class="variable">console</span>.<span class="function">error</span>(<span class="string">'Target socket error:'</span>, <span class="variable">err</span>);
+    <span class="variable">clientSocket</span>.<span class="function">end</span>();
+  });
+  
+  <span class="variable">clientSocket</span>.<span class="function">on</span>(<span class="string">'end'</span>, () <span class="operator">=&gt;</span> {
+    <span class="variable">console</span>.<span class="function">log</span>(<span class="string">'Client disconnected.'</span>);
+    <span class="variable">targetSocket</span>.<span class="function">end</span>();
+  });
+});
+
+<span class="variable">proxyServer</span>.<span class="function">listen</span>(<span class="variable">proxyPort</span>, () <span class="operator">=&gt;</span> {
+  <span class="variable">console</span>.<span class="function">log</span>(<span class="string">`TCP proxy listening on port ${proxyPort}`</span>);
+});</code></pre>
+    </div>
+
+</body>
+
+</html>
